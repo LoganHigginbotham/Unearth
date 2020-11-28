@@ -75,7 +75,6 @@ function block(type, toughness, color) {
 function controller(xInput, yInput) {
     this.x = xInput;
     this.y = yInput;
-    }
 }
 
 //Main function. Update runs very often
