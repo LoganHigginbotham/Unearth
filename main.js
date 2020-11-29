@@ -109,7 +109,19 @@ function block(type) {
         this.toughness = 3;
         this.color = "#8a7349";
     }
-    //if(type === "sapling") {}
+    if(type === "Sapling") {
+        this.toughness = 3;
+        this.color = "#a16e58";
+        this.grow
+    }
+    if(type === 'Log') {
+        this.toughness = 5;
+        this.color = "#a18555";
+    }
+    if(type === 'Leaf') {
+        this.toughness = 2;
+        this.color = "#82bd84";
+    }
 }
 
 //Player Cords
@@ -125,6 +137,7 @@ function updateGameArea() {
     keyPress();
     mine();
     place();
+    interact();
     if(xActive || cTool){checkActive()}
     checkGen();
     gameArea.context.clearRect(0, 0, gameArea.canvas.width, gameArea.canvas.height);
@@ -153,7 +166,7 @@ function checkActive() {
 
 function keyPress() {
     //Keys w,a,s,d
-    if(!inventorySwitch){
+    if(!inventorySwitch){ // mapCords[player.x -1][player.y].type === 'Air'
         if (gameArea.keys && gameArea.keys[65] && allowMove && mapCords[player.x -1][player.y].type === 'Air') {player.x -= 1; allowMove = false; setTimeout(function(){ allowMove = true; }, 200);}
 	    if (gameArea.keys && gameArea.keys[68] && allowMove && mapCords[player.x +1][player.y].type === 'Air') {player.x += 1; allowMove = false; setTimeout(function(){ allowMove = true; }, 200);}
 	    if (gameArea.keys && gameArea.keys[87] && allowMove && mapCords[player.x][player.y -1].type === 'Air') {player.y -= 1; allowMove = false; setTimeout(function(){ allowMove = true; }, 200);}
@@ -168,17 +181,66 @@ function keyPress() {
 //Array for a for loop to see the 4 cardnal direction blocks
 var cordSet = [[-1,0,3,4,4,5],[1,0,5,6,4,5],[0,-1,4,5,3,4],[0,1,4,5,5,6]];
 
+//Interact with blocks
+
+function interact() {
+    if(rightDown) {
+        for(var i=0;i<4;i++) {
+            if(gameArea.mouseX >= (windowWidth-minAmount)/2+(minAmount/9*cordSet[i][2]) && gameArea.mouseX < (windowWidth-minAmount)/2+(minAmount/9*cordSet[i][3]) && gameArea.mouseY >= minAmount/9*cordSet[i][4] && gameArea.mouseY < minAmount/9*cordSet[i][5]) {
+                //Planting sapling
+                if(mapCords[player.x +cordSet[i][0]][player.y +cordSet[i][1]].type === 'Dirt' && active != -1 || mapCords[player.x +cordSet[i][0]][player.y +cordSet[i][1]].type === 'WorldDirt' && active != -1) {
+                    if(inventory[active][0] === 'Sapling') {
+                        mapCords[player.x +cordSet[i][0]][player.y +cordSet[i][1]] = new block('Sapling');
+                        inventory[active][1]--;
+                        if(inventory[active][1] < 1) {
+                            inventory.splice(active, 1);
+                            active = -1;
+                        }
+                        var rand = 6000+240000*Math.random();
+                        mapCords[player.x +cordSet[i][0]][player.y +cordSet[i][1]].grow = setTimeout(function(j,k) { 
+                            mapCords[j][k] = new block('Log');
+                            //left
+                            if(mapCords[j-1][k].type === 'Air') {
+                                mapCords[j-1][k] = new block('Leaf');
+                            }
+                            //right
+                            if(mapCords[j+1][k].type === 'Air') {
+                                mapCords[j+1][k] = new block('Leaf');
+                            }
+                            //up
+                            if(mapCords[j][k+1].type === 'Air') {
+                                mapCords[j][k+1] = new block('Leaf');
+                            }
+                            //left
+                            if(mapCords[j][k-1].type === 'Air') {
+                                mapCords[j][k-1] = new block('Leaf');
+                            }
+                        }, rand, player.x +cordSet[i][0], player.y +cordSet[i][1]);
+                    }
+                }
+            }
+        }
+    }
+}
+
 //Place blocks
+var canPlace = ['Dirt','Stone','Iron','Coal','Gold','Log'];
 
 function place() {
     if(rightDown && active != -1) {
-        for(var i=0;i<4;i++) {
-            if(gameArea.mouseX >= (windowWidth-minAmount)/2+(minAmount/9*cordSet[i][2]) && gameArea.mouseX < (windowWidth-minAmount)/2+(minAmount/9*cordSet[i][3]) && gameArea.mouseY >= minAmount/9*cordSet[i][4] && gameArea.mouseY < minAmount/9*cordSet[i][5] && mapCords[player.x +cordSet[i][0]][player.y +cordSet[i][1]].type === 'Air') {
-                mapCords[player.x +cordSet[i][0]][player.y +cordSet[i][1]] = new block(inventory[active][0]);
-                inventory[active][1]--;
-                if(inventory[active][1] < 1) {
-                    inventory.splice(active, 1);
-                    active = -1;
+        for(var j=0;j<canPlace.length;j++) {
+            if(active != -1) {
+                if(inventory[active][0] === canPlace[j]){
+                    for(var i=0;i<4;i++) {
+                        if(gameArea.mouseX >= (windowWidth-minAmount)/2+(minAmount/9*cordSet[i][2]) && gameArea.mouseX < (windowWidth-minAmount)/2+(minAmount/9*cordSet[i][3]) && gameArea.mouseY >= minAmount/9*cordSet[i][4] && gameArea.mouseY < minAmount/9*cordSet[i][5] && mapCords[player.x +cordSet[i][0]][player.y +cordSet[i][1]].type === 'Air') {
+                            mapCords[player.x +cordSet[i][0]][player.y +cordSet[i][1]] = new block(inventory[active][0]);
+                            inventory[active][1]--;
+                            if(inventory[active][1] < 1) {
+                                inventory.splice(active, 1);
+                                active = -1;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -195,10 +257,22 @@ function mine() {
                     if(gameArea.mouseX >= (windowWidth-minAmount)/2+(minAmount/9*cordSet[placeHolderi][2]) && gameArea.mouseX < (windowWidth-minAmount)/2+(minAmount/9*cordSet[placeHolderi][3]) && gameArea.mouseY >= minAmount/9*cordSet[placeHolderi][4] && gameArea.mouseY < minAmount/9*cordSet[placeHolderi][5] && mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]].type != 'Air') {
                         mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]].breakStage++; 
                         if(mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]].breakStage >= mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]].toughness) {
-                            if(mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]].type != 'WorldDirt') {
+                            if(mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]].type != 'WorldDirt' && mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]].type != 'Leaf') {
                                 addInventory(mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]].type);
                             } else if(mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]].type === 'WorldDirt') {
                                 addInventory('Dirt');
+                                var rand = Math.random();
+                                if(rand < .25) {
+                                   addInventory('Sapling');
+                                }
+                            } else if(mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]].type === 'Sapling') {
+                                addInventory('Dirt');
+                                clearTimeout(mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]].grow);
+                            } else if(mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]].type === 'Leaf') {
+                                var rand = Math.random();
+                                if(rand < .33) {
+                                   addInventory('Sapling');
+                                }
                             }
                             mapCords[player.x +cordSet[placeHolderi][0]][player.y +cordSet[placeHolderi][1]] = new block('Air');
                         }
@@ -232,16 +306,20 @@ function draw() {
     ctx = gameArea.context;
     ctx.fillStyle = "#edcf8e";
     ctx.fillRect(minAmount/2-(minAmount/11)/2, minAmount/2-(minAmount/11)/2, minAmount/11, minAmount/11);
+    //draw Cords
+    ctx.fillStyle = "#ffffff";
+    ctx.font = String(minAmount*.043)+"px Arial";
+    ctx.fillText(String(-10000000+player.x) + ', ' + String(10000000-player.y), minAmount/9/7, minAmount/9/2.5);
     //draw Active item
     if(active != -1) {
         ctx.fillStyle = "#ffffff";
         ctx.font = String(minAmount*.043)+"px Arial";
-        ctx.fillText(inventory[active][0] + ' x' + String(inventory[active][1]), minAmount/9/7, minAmount/9/2.5);
+        ctx.fillText(inventory[active][0] + ' x' + String(inventory[active][1]), minAmount/9/7, minAmount/9/2.5+minAmount*.043);
     }
     //draw tool
     if(tool != -1) {
         ctx.fillStyle = "#ffffff";
-        ctx.fillText(inventory[tool][0] + ' x' + String(inventory[tool][1]), minAmount/9/7, minAmount/9/2.5+minAmount*.043);
+        ctx.fillText(inventory[tool][0] + ' x' + String(inventory[tool][1]), minAmount/9/7, minAmount/9/2.5+minAmount*.043*2);
     }
     //draw inventory
     if(inventorySwitch) {
@@ -303,15 +381,14 @@ var mapCords = Create2DArray(20000000);
 
 function chunkGen(x,y) {
     var rand = Math.random();
-    if (rand <= .025) {
-        mapCords[x][y] = new block('Iron');
-    } else if (rand > .025 && rand <= .03) {
-        mapCords[x][y] = new block('Gold');
-    } else if (rand > .03 && rand <= .035) {
-        mapCords[x][y] = new block('WorldDirt');
-        //dirtSpawn(genX, genY);
-    } else if (rand > .035 && rand <= .065) {
-        mapCords[x][y] = new block('Coal');
+    if (rand <= .01) {//og .025
+        vein(x, y, 'Iron');
+    } else if (rand > .01 && rand <= .013) {//.025, .03
+        vein(x, y, 'Gold');
+    } else if (rand > .013 && rand <= .033) {//.03, .035
+        vein(x, y, 'WorldDirt');
+    } else if (rand > .033 && rand <= .048) {//.035, .065
+        vein(x, y, 'Coal');
     } else {
         mapCords[x][y] = new block('Stone');
     }
@@ -329,17 +406,58 @@ function checkGen() {
     }
 }
 
-/*
-function dirtSpawn(genX, genY) {
-    var dirtRan = Math.random();
-    if (dirtRan >= 0.6) {
-        mapCords[genX][genY + 1] = 'WorldDirt';
-        mapCords[genX][genY - 1] = 'WorldDirt';
-        mapCords[genX + 1][genY] = 'WorldDirt';
-        mapCords[genX - 1][genY] = 'WorldDirt';
-    } else if (dirtRan < 0.6 && dirtRan > 0.1) {
-        mapCords[genX][genY + 1] = 'WorldDirt';
-        mapCords[genX + 1][genY + 1] = 'WorldDirt';
-        mapCords[genX + 1][genY] = 'WorldDirt';
+//Make this a vein function
+function vein(x, y, type) {
+    var rand = Math.random();
+    //single
+    if(rand >= 0.9) {
+        mapCords[x][y] = new block(type);
+    //plus
+    } else if(rand < 0.9 && rand >= 0.7) {
+        mapCords[x][y] = new block(type);
+        mapCords[x][y+1] = new block(type);
+        mapCords[x][y-1] = new block(type);
+        mapCords[x+1][y] = new block(type);
+        mapCords[x-1][y] = new block(type);
+    //square
+    } else if(rand < 0.7 && rand >= 0.5) {
+        mapCords[x][y] = new block(type);
+        mapCords[x][y+1] = new block(type);
+        mapCords[x+1][y+1] = new block(type);
+        mapCords[x+1][y] = new block(type);
+    //right arrow
+    } else if(rand < 0.5 && rand >= 0.3) {
+        mapCords[x][y] = new block(type);
+        mapCords[x][y+1] = new block(type);
+        mapCords[x][y-1] = new block(type);
+        mapCords[x+1][y+1] = new block(type);
+        mapCords[x+1][y] = new block(type);
+        mapCords[x-1][y] = new block(type);
+        mapCords[x-1][y-1] = new block(type);
+    //left arrow
+    } else if(rand < 0.3 && rand >= 0.1) {
+        mapCords[x][y] = new block(type);
+        mapCords[x][y+1] = new block(type);
+        mapCords[x][y-1] = new block(type);
+        mapCords[x-1][y+1] = new block(type);
+        mapCords[x+1][y] = new block(type);
+        mapCords[x-1][y] = new block(type);
+        mapCords[x+1][y-1] = new block(type);
+    //big
+    } else if(rand < .1) {
+        mapCords[x][y] = new block(type);
+        mapCords[x][y+1] = new block(type);
+        mapCords[x][y-1] = new block(type);
+        mapCords[x+1][y+1] = new block(type);
+        mapCords[x+1][y] = new block(type);
+        mapCords[x-1][y] = new block(type);
+        mapCords[x-1][y-1] = new block(type);
+        mapCords[x][y-2] = new block(type);
+        mapCords[x][y] = new block(type);
+        mapCords[x+1][y-1] = new block(type);
+        mapCords[x+2][y] = new block(type);
+        mapCords[x+2][y+1] = new block(type);
+        mapCords[x+1][y+2] = new block(type);
+        
     }
-}*/
+}
