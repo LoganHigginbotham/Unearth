@@ -1,3 +1,26 @@
+/*
+        Crafting
+    
+    1 Log = 1 Wooden Plank
+    2 Wooden Planks = 1 Stick
+    2 Sticks = 1 Handle
+    2 Sticks + 1 Wooden Plank = 1 Wooden Pick Head
+    1 Handle + 1 Wooden Pick Head = 1 Wooden Pickaxe
+    8 Stone = 1 Stone Pick Head
+    1 Handle + 1 Stone Pick Head = 1 Stone Pickaxe
+    2 Iron + 1 Iron Block = 1 Iron Pick Head
+    1 Handle + 1 Iron Pick Head = 1 Iron Pickaxe
+    2 Gold + 1 Gold Block = 1 Gold Pick Head
+    1 Handle + 1 Gold Pick Head = 1 Gold Pickaxe
+    2 Diamond + 1 Diamond Block = 1 Diamond Pick Head
+    1 Handle + 1 Diamond Pick Head = 1 Diamond Pickaxe
+    9 Iron = 1 Iron Block
+    9 Gold = 1 Gold Block
+    9 Diamond = 1 Diamond Block
+
+*/
+
+
 window.onload = function(){startGame();}
 var player;
 var minAmount = 0;
@@ -9,6 +32,7 @@ var windowWidth = 0;
 var dirMine = "";
 var checkMine;
 var inventorySwitch = false;
+var inv = false;
 var allowInventory = true;
 var inventory = [];
 var xActive = false;
@@ -17,6 +41,9 @@ var active = -1;
 var cTool = false;
 var allowTool = true;
 var tool = -1;
+var noclip = false;
+var inventoryAmount = 0;
+var playerSpeed = 200;
 
 //Load function to start game
 
@@ -55,7 +82,7 @@ var gameArea = {
         this.mouseY = 0;
         //Computer input
         window.addEventListener('mousedown', function(){mouseDown = true;})
-        window.addEventListener('mouseup', function(){clearTimeout(checkMine); mouseDown = false; miningTimeout = false;})
+        window.addEventListener('mouseup', function(){clearTimeout(checkMine); mouseDown = false; miningTimeout = false; tempInvCheck = false;})
         window.addEventListener('contextmenu', function(ev) {
             ev.preventDefault();
             rightDown = true;
@@ -139,6 +166,7 @@ function updateGameArea() {
     place();
     interact();
     if(xActive || cTool){checkActive()}
+    if(inventorySwitch) {checkInvInteract()}
     checkGen();
     gameArea.context.clearRect(0, 0, gameArea.canvas.width, gameArea.canvas.height);
     //Checks window size and resizes it
@@ -153,13 +181,30 @@ function updateGameArea() {
 
 function checkActive() {
     for(var i=0;i<inventory.length;i++) {
-        console.log(active);
-         //minAmount/18, minAmount/6+minAmount*.043*(i+1.5)
         if(mouseDown && gameArea.mouseX > minAmount/18 && gameArea.mouseY > minAmount/6+minAmount*.043*(i+.5) && gameArea.mouseX < minAmount/2.1 && gameArea.mouseY < minAmount/6+minAmount*.043*(i+1.5)){
             if(xActive){active = i; xActive = false;}
             if(cTool){tool = i; cTool = false;}
         }
     }
+}
+var tempInvCheck = false;
+
+function checkInvInteract() {
+    var tempCraftingArray = checkCraftable(true);
+    for(var i=0;i<tempCraftingArray.length;i++) {
+        if(mouseDown && gameArea.mouseX > minAmount/1.3 && gameArea.mouseY > minAmount/6+minAmount*.043*(i+.5) && gameArea.mouseX < minAmount*1.25 && gameArea.mouseY < minAmount/6+minAmount*.043*(i+1.5) && !tempInvCheck){
+            for(var j=0;j<tempCraftingArray[i][2];j++) {
+                console.log(tempCraftingArray[i][1]);
+                inventory[tempCraftingArray[i][1]][1]--;
+                if(inventory[tempCraftingArray[i][1]][1] < 1) {
+                    inventory.splice(tempCraftingArray[i][1], 1);
+                }
+            }
+            addInventory(tempCraftingArray[i][0]);
+            tempInvCheck = true;
+        }
+    }
+    checkCraftable();
 }
 
 //Controlling up,down,left,right
@@ -167,13 +212,13 @@ function checkActive() {
 function keyPress() {
     //Keys w,a,s,d
     if(!inventorySwitch){ // mapCords[player.x -1][player.y].type === 'Air'
-        if (gameArea.keys && gameArea.keys[65] && allowMove && mapCords[player.x -1][player.y].type === 'Air') {player.x -= 1; allowMove = false; setTimeout(function(){ allowMove = true; }, 200);}
-	    if (gameArea.keys && gameArea.keys[68] && allowMove && mapCords[player.x +1][player.y].type === 'Air') {player.x += 1; allowMove = false; setTimeout(function(){ allowMove = true; }, 200);}
-	    if (gameArea.keys && gameArea.keys[87] && allowMove && mapCords[player.x][player.y -1].type === 'Air') {player.y -= 1; allowMove = false; setTimeout(function(){ allowMove = true; }, 200);}
-	    if (gameArea.keys && gameArea.keys[83] && allowMove && mapCords[player.x][player.y +1].type === 'Air') {player.y += 1; allowMove = false; setTimeout(function(){ allowMove = true; }, 200);}
+        if (gameArea.keys && gameArea.keys[65] && allowMove && mapCords[player.x -1][player.y].type === 'Air' || gameArea.keys && gameArea.keys[65] && allowMove && noclip) {player.x -= 1; allowMove = false; setTimeout(function(){ allowMove = true; }, playerSpeed);}
+	    if (gameArea.keys && gameArea.keys[68] && allowMove && mapCords[player.x +1][player.y].type === 'Air' || gameArea.keys && gameArea.keys[68] && allowMove && noclip) {player.x += 1; allowMove = false; setTimeout(function(){ allowMove = true; }, playerSpeed);}
+	    if (gameArea.keys && gameArea.keys[87] && allowMove && mapCords[player.x][player.y -1].type === 'Air' || gameArea.keys && gameArea.keys[87] && allowMove && noclip) {player.y -= 1; allowMove = false; setTimeout(function(){ allowMove = true; }, playerSpeed);}
+	    if (gameArea.keys && gameArea.keys[83] && allowMove && mapCords[player.x][player.y +1].type === 'Air' || gameArea.keys && gameArea.keys[83] && allowMove && noclip) {player.y += 1; allowMove = false; setTimeout(function(){ allowMove = true; }, playerSpeed);}
     }
     //Key e
-    if(gameArea.keys && gameArea.keys[69] && allowInventory){allowInventory = false; inventorySwitch = !inventorySwitch; xActive = false; cTool = false;} else if(gameArea.keys && !gameArea.keys[69]){allowInventory = true;}
+    if(gameArea.keys && gameArea.keys[69] && allowInventory){allowInventory = false; inventorySwitch = !inventorySwitch; inv = !inv; xActive = false; cTool = false;} else if(gameArea.keys && !gameArea.keys[69]){allowInventory = true;}
     if(gameArea.keys && gameArea.keys[88] && allowActive && !cTool){xActive = !xActive; allowActive = false;} else if(gameArea.keys && !gameArea.keys[88]){allowActive = true;}
     if(gameArea.keys && gameArea.keys[67] && allowTool && !xActive){cTool = !cTool; allowTool = false;} else if(gameArea.keys && !gameArea.keys[67]){allowTool = true}
 }
@@ -331,6 +376,7 @@ function draw() {
         ctx.fillRect(minAmount/2-1,minAmount/6,3,minAmount/6*4.5);
         ctx.font = String(minAmount*.043)+"px Arial";
         ctx.fillText("Inventory", minAmount/18, minAmount/6);
+        ctx.fillText(String(inventoryAmount)+"/512", minAmount/3, minAmount/6);
         ctx.fillText("Crafting", minAmount/1.75, minAmount/6);
         ctx.font = String(minAmount*.037)+"px Arial";
         for(var i=0;i<inventory.length;i++) {
@@ -345,6 +391,12 @@ function draw() {
         if(cTool){
            ctx.fillText("Tool", minAmount/2.2, minAmount/9/2.5+minAmount*.043);
         }
+        ctx.font = String(minAmount*.037)+"px Arial"
+        //Crafting
+        var tempCraftingArray = checkCraftable(true);
+        for(var i=0;i<tempCraftingArray.length;i++) {
+            ctx.fillText(tempCraftingArray[i][0], minAmount/1.75, minAmount/6+minAmount*.043*(i+1.5));
+        }
     }
 }
 
@@ -352,8 +404,9 @@ function draw() {
 
 function addInventory(type) {
     var worked = false;
+    checkInventoryAmount();
     for(var i=0;i<inventory.length;i++){
-        if(type === inventory[i][0] && inventory[i][1] < 32) {
+        if(type === inventory[i][0] && inventoryAmount < 512) {
             inventory[i][1]++;
             worked = true;
             break;
@@ -363,6 +416,49 @@ function addInventory(type) {
         inventory.push([type,1]);
         console.log(inventory);
     }
+    checkInventoryAmount();
+}
+
+function checkInventoryAmount() {
+    inventoryAmount = 0;
+    for(var i=0;i<inventory.length;i++) {
+        inventoryAmount += inventory[i][1];
+    }
+}
+
+//Checks all the crafting posibilities
+
+function checkCraftable() {
+    var canCraft = [];
+    var placeholderCraft = [];
+    // craftArray = [Input1,amount1,Input2,amount2,ect3,ect3,output,how many inputs there are]
+    var craftArray = [['Log',1,'Wooden Planks',1],
+                      ['Wooden Planks',2,'Sticks',1],
+                      ['Sticks',2,'Handle',1],
+                      ['Sticks',2,'Wooden Planks',1,'Wooden Pick Head',2],
+                      ['Handle',1,'Wooden Pick Head',1,'Wooden Pickaxe',2],
+                      ['Stone',8,'Stone Pick Head',1],
+                      ['Handle',1,'Stone Pick Head',1,'Stone Pickaxe',2]
+                     ];
+    if(inv) {
+        for(var i=0;i<inventory.length;i++) {
+            for(var j=0;j<craftArray.length;j++) {
+                for(var k=0;k<craftArray[j].length-2;k+=2) {
+                    if(inventory[i][0] === craftArray[j][k] && inventory[i][1] >= craftArray[j][k+1]) {
+                        if(placeholderCraft[j] === undefined) {placeholderCraft[j]=[]}
+                        placeholderCraft[j].push('temp');
+                        if(placeholderCraft[j] != undefined) {
+                            if(placeholderCraft[j].length === craftArray[j][craftArray[j].length-1]) {
+                                canCraft.push([craftArray[j][craftArray[j].length-2],i,craftArray[j][k+1]]);//[type,index,amount]
+                            }
+                        }
+                    }
+                    
+                }
+            }
+        }
+    }
+    return canCraft;
 }
 
 //Creates array for the map
